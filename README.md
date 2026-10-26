@@ -5,7 +5,6 @@ A browser-based Carnatic tala practice tool with animated hand models, synthesiz
 ## Features
 
 - 3D hand models showing correct tala gestures (clap, finger counts, wave)
-- Alta (red dye) on fingertips, kumkum circle on left palm, gold bangles
 - Synthesized clap/finger/wave sounds with adjustable tempo and volume
 - Nadai subdivisions (3, 4, 5, 7, 9) and 2-kalai support for Adi
 - Beat-position display with anga grouping

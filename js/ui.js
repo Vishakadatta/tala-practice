@@ -1,10 +1,13 @@
 import { TALAS, expandTala } from './talas.js';
 import * as hands from './hands.js';
+import * as engine from './engine.js';
+import { initAudio, getContext, setVolume } from './audio.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
 let currentTala = null;
+let playing = false;
 
 async function boot() {
   const canvas = $('#scene');
@@ -22,7 +25,6 @@ async function boot() {
   buildSidebar();
   wireControls();
 
-  // Select Adi by default
   selectTala(TALAS[0]);
 }
 
@@ -44,12 +46,12 @@ function buildSidebar() {
 function selectTala(tala) {
   currentTala = tala;
 
-  // Update active sidebar item
+  if (playing) stopPlayback();
+
   $$('#tala-list li').forEach(li => {
     li.classList.toggle('active', li.dataset.id === tala.id);
   });
 
-  // Header
   const name = tala.common !== tala.name
     ? `${tala.name} (${tala.common})`
     : tala.name;
@@ -58,18 +60,15 @@ function selectTala(tala) {
   const totalBeats = tala.chapu ? tala.beats : tala.angas.reduce((s, a) => s + a.beats, 0);
   $('#tala-info').textContent = `${totalBeats} beats · ${tala.symbol}`;
 
-  // Kalai toggle
   const kalaiLabel = $('#kalai-label');
   kalaiLabel.style.display = tala.hasKalai ? '' : 'none';
   $('#kalai-toggle').checked = false;
+  engine.setKalai(1);
 
-  // Build anga strip
   buildAngaStrip(tala);
+  engine.setTala(tala);
 
-  // Enable start
   $('#btn-start').disabled = false;
-
-  // Set hands to rest
   hands.setPose('REST');
 }
 
@@ -77,7 +76,7 @@ function buildAngaStrip(tala) {
   const strip = $('#anga-strip');
   strip.innerHTML = '';
 
-  const beats = expandTala(tala, 1);
+  const beats = expandTala(tala, engine.getKalai());
   let currentAnga = -1;
   let angaDiv = null;
   let beatsDiv = null;
@@ -108,7 +107,6 @@ function buildAngaStrip(tala) {
     num.textContent = beat.index + 1;
     cell.appendChild(num);
 
-    // Sub-beat dots (placeholder for nadai display)
     const nadai = parseInt($('#nadai-select').value) || 4;
     const dots = document.createElement('div');
     dots.className = 'sub-dots';
@@ -123,33 +121,73 @@ function buildAngaStrip(tala) {
   $('#anga-label').textContent = '';
 }
 
+function scheduleUI(beatIndex, beat, time) {
+  const ctx = getContext();
+  if (!ctx) return;
+  const delay = Math.max(0, (time - ctx.currentTime) * 1000);
+  setTimeout(() => {
+    if (!playing) return;
+
+    $$('.beat-cell').forEach(c => c.classList.remove('active'));
+    const cell = $(`.beat-cell[data-beat="${beatIndex}"]`);
+    if (cell) cell.classList.add('active');
+
+    $('#anga-label').textContent = beat.angaName;
+
+    const pose = beat.gesture === 'NONE' ? 'REST' : beat.gesture;
+    hands.setPose(pose);
+  }, delay);
+}
+
+function startPlayback() {
+  initAudio();
+  engine.onBeatCallback(scheduleUI);
+  engine.start();
+  playing = true;
+  $('#btn-start').textContent = 'Stop';
+}
+
+function stopPlayback() {
+  engine.stop();
+  playing = false;
+  $('#btn-start').textContent = 'Start';
+  $$('.beat-cell').forEach(c => c.classList.remove('active'));
+  $('#anga-label').textContent = '';
+  hands.setPose('REST');
+}
+
 function wireControls() {
-  // Start/Stop
   $('#btn-start').addEventListener('click', () => {
-    // Will be wired to engine in M2
+    if (playing) stopPlayback();
+    else startPlayback();
   });
 
-  // Tempo
   $$('.tempo-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const delta = parseInt(btn.dataset.delta);
-      const current = parseInt($('#tempo-display').textContent) || 60;
-      const next = Math.max(30, Math.min(160, current + delta));
+      const next = Math.max(30, Math.min(160, engine.getBpm() + delta));
+      engine.setBpm(next);
       $('#tempo-display').textContent = `${next} BPM`;
     });
   });
 
-  // Nadai
-  $('#nadai-select').addEventListener('change', () => {
+  $('#nadai-select').addEventListener('change', e => {
+    engine.setNadai(parseInt(e.target.value));
     if (currentTala) buildAngaStrip(currentTala);
   });
 
-  // Volume
   $('#volume').addEventListener('input', e => {
-    // Will connect to audio in M2
+    setVolume(parseFloat(e.target.value));
   });
 
-  // Hide hands
+  $('#kalai-toggle').addEventListener('change', e => {
+    engine.setKalai(e.target.checked ? 2 : 1);
+    if (currentTala) {
+      buildAngaStrip(currentTala);
+      engine.setTala(currentTala);
+    }
+  });
+
   let handsVisible = true;
   $('#btn-hide-hands').addEventListener('click', () => {
     handsVisible = !handsVisible;
@@ -157,31 +195,12 @@ function wireControls() {
     $('#btn-hide-hands').textContent = handsVisible ? 'Hide hands' : 'Show hands';
   });
 
-  // Reset view
   $('#reset-view').addEventListener('click', () => hands.resetView());
 
-  // Spacebar for start/stop
   document.addEventListener('keydown', e => {
     if (e.code === 'Space' && e.target === document.body) {
       e.preventDefault();
       $('#btn-start').click();
-    }
-  });
-
-  // Debug: number keys for poses (temporary, for M1 screenshots)
-  document.addEventListener('keydown', e => {
-    const poseMap = {
-      '0': 'REST',
-      '1': 'CLAP',
-      '2': 'FINGER_LITTLE',
-      '3': 'FINGER_RING',
-      '4': 'FINGER_MIDDLE',
-      '5': 'FINGER_INDEX',
-      '6': 'FINGER_THUMB',
-      '7': 'WAVE',
-    };
-    if (poseMap[e.key] && e.target === document.body) {
-      hands.setPose(poseMap[e.key]);
     }
   });
 }

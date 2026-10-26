@@ -20,14 +20,14 @@ export async function init(canvas) {
 
   const aspect = canvas.clientWidth / canvas.clientHeight;
   camera = new THREE.PerspectiveCamera(35, aspect, 0.01, 10);
-  camera.position.set(0.12, 0.08, 0.32);
+  camera.position.set(-0.01, 0.18, 0.22);
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setSize(canvas.clientWidth, canvas.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 0, 0);
+  controls.target.set(0.02, 0, 0.01);
   controls.enableDamping = true;
   controls.dampingFactor = 0.1;
   controls.minDistance = 0.08;
@@ -36,8 +36,8 @@ export async function init(canvas) {
   controls.minPolarAngle = Math.PI * 0.05;
   controls.update();
 
-  scene.add(new THREE.HemisphereLight(0xfff5e0, 0x8b7355, 0.6));
-  const key = new THREE.DirectionalLight(0xffffff, 0.8);
+  scene.add(new THREE.HemisphereLight(0xfff5e0, 0xf3e6d6, 2.0));
+  const key = new THREE.DirectionalLight(0xffffff, 2.5);
   key.position.set(0.2, 0.5, 0.4);
   scene.add(key);
 
@@ -45,6 +45,7 @@ export async function init(canvas) {
   await loadHands();
   ready = true;
   animate();
+
 }
 
 function addContactShadow() {
@@ -53,7 +54,7 @@ function addContactShadow() {
   c.width = sz; c.height = sz;
   const ctx = c.getContext('2d');
   const g = ctx.createRadialGradient(sz / 2, sz / 2, 0, sz / 2, sz / 2, sz / 2);
-  g.addColorStop(0, 'rgba(60,40,30,0.15)');
+  g.addColorStop(0, 'rgba(60,40,30,0.12)');
   g.addColorStop(1, 'rgba(60,40,30,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, sz, sz);
@@ -62,9 +63,9 @@ function addContactShadow() {
   const mat = new THREE.MeshBasicMaterial({
     map: tex, transparent: true, depthWrite: false,
   });
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.16), mat);
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), mat);
   plane.rotation.x = -Math.PI / 2;
-  plane.position.set(0, -0.04, 0);
+  plane.position.set(0.02, -0.04, 0.01);
   scene.add(plane);
 }
 
@@ -110,7 +111,7 @@ async function loadHands() {
   rightGroup.quaternion.copy(rightQ);
 
   leftGroup.position.set(0, -0.02, 0);
-  rightGroup.position.set(0, REST_Y, 0);
+  rightGroup.position.set(0.045, REST_Y, 0.04);
 
   scene.add(leftGroup);
   scene.add(rightGroup);
@@ -140,11 +141,11 @@ function buildHierarchy(bones) {
   }
 }
 
-function setSkin(root) {
+function setSkin(root, color) {
   root.traverse(n => {
     if (n.isMesh) {
       n.material = new THREE.MeshStandardMaterial({
-        color: SKIN,
+        color: color || SKIN,
         roughness: 1,
         metalness: 0,
         flatShading: true,
@@ -157,7 +158,7 @@ function setSkin(root) {
 
 const LEFT_Y = -0.02;
 const REST_Y = 0.025;
-const CONTACT_Y = -0.005;
+const CONTACT_Y = -0.008;
 const HOVER_Y = 0.005;
 
 let flexAxes = {};
@@ -270,11 +271,11 @@ export function setPose(poseName) {
       };
       const target = fingerMap[poseName];
 
-      flexFinger(target, -1.0, -0.8, -0.5);
+      flexFinger(target, -1.4, -1.2, -0.8);
 
       for (const f of FINGERS) {
         if (f === target) continue;
-        flexFinger(f, 0.35, 0.25, 0.15);
+        flexFinger(f, 0.5, 0.35, 0.2);
       }
       break;
     }
@@ -282,8 +283,8 @@ export function setPose(poseName) {
 }
 
 export function resetView() {
-  camera.position.set(0.12, 0.08, 0.32);
-  controls.target.set(0, 0, 0);
+  camera.position.set(-0.01, 0.18, 0.22);
+  controls.target.set(0.02, 0, 0.01);
   controls.update();
 }
 

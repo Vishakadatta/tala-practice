@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tala Practice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <nav id="sidebar" class="sidebar">
+    <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+    <h2 class="sidebar-title">Talas</h2>
+    <ul id="tala-list" class="tala-list"></ul>
+  </nav>
+
+  <main id="main">
+    <header id="tala-header">
+      <h1 id="tala-name" class="tala-name">Select a tala</h1>
+      <p id="tala-info" class="tala-info"></p>
+    </header>
+
+    <div id="canvas-wrap" class="canvas-wrap">
+      <canvas id="scene"></canvas>
+      <button id="reset-view" class="btn-small">Reset view</button>
+    </div>
+
+    <div id="anga-strip" class="anga-strip"></div>
+    <p id="anga-label" class="anga-label"></p>
+
+    <div id="controls" class="controls">
+      <button id="btn-start" class="btn" disabled>Start</button>
+      <div class="tempo-group">
+        <button class="btn-small tempo-btn" data-delta="-5">-5</button>
+        <button class="btn-small tempo-btn" data-delta="-1">-1</button>
+        <span id="tempo-display" class="tempo-display">60 BPM</span>
+        <button class="btn-small tempo-btn" data-delta="1">+1</button>
+        <button class="btn-small tempo-btn" data-delta="5">+5</button>
+      </div>
+      <div class="control-row">
+        <label class="control-label">Nadai
+          <select id="nadai-select">
+            <option value="3">Tisra (3)</option>
+            <option value="4" selected>Chatusra (4)</option>
+            <option value="5">Khanda (5)</option>
+            <option value="7">Misra (7)</option>
+            <option value="9">Sankeerna (9)</option>
+          </select>
+        </label>
+        <label id="kalai-label" class="control-label" style="display:none">
+          <input type="checkbox" id="kalai-toggle"> 2-Kalai
+        </label>
+        <label class="control-label">Volume
+          <input type="range" id="volume" min="0" max="100" value="70">
+        </label>
+        <button id="btn-hide-hands" class="btn-small">Hide hands</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="js/ui.js"></script>
+</body>
+</html>

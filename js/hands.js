@@ -156,11 +156,16 @@ async function loadHands() {
 
   // A relaxed, slightly cupped resting hand looks natural; a dead-flat one does not.
   for (const f of FINGERS) {
-    // Thumb: tuck it clearly to the side of the palm so it never pokes the right hand.
-    // Higher proximal angle rotates the thumb down-and-inward (away from the right hand).
-    if (f === 'thumb') setFinger('left', f, [0.45, 0.25, 0.05]);
+    if (f === 'thumb') setFinger('left', f, [0.3, 0.25, 0.05]);
     else setFinger('left', f, [0.12, 0.14, 0.08]);
   }
+  // Hide the left thumb entirely — it always pokes through the right hand no matter
+  // the rotation angle, and a tucked clapping hand naturally conceals its thumb.
+  for (const jt of ['thumb-metacarpal', 'thumb-phalanx-proximal', 'thumb-phalanx-distal', 'thumb-tip']) {
+    if (bones.left[jt]) bones.left[jt].scale.setScalar(0);
+  }
+  // Right hand thumb: keep it natural but slightly tucked so it doesn't poke out.
+  adductThumb('right', -0.4);
 }
 
 function centreOnPalm(root, b) {
@@ -234,6 +239,29 @@ function computeFlexAxes(side) {
   }
 }
 
+// Rotate thumb-metacarpal around the palm normal to adduct/abduct the thumb.
+// Positive angle swings the thumb toward the index finger (adduction).
+function adductThumb(side, angle) {
+  const b = bones[side];
+  const mc = b['thumb-metacarpal'];
+  if (!mc) return;
+  // Build palm normal from measured world positions.
+  const wp = new THREE.Vector3(), ip = new THREE.Vector3(), pp = new THREE.Vector3();
+  b.wrist.getWorldPosition(wp);
+  b['index-finger-metacarpal'].getWorldPosition(ip);
+  b['pinky-finger-metacarpal'].getWorldPosition(pp);
+  const palmNormalW = new THREE.Vector3()
+    .crossVectors(pp.sub(wp).normalize(), ip.sub(wp).normalize()).normalize();
+  if (side === 'left') palmNormalW.negate();
+  // Convert palm normal to metacarpal's local space.
+  const wq = new THREE.Quaternion();
+  mc.getWorldQuaternion(wq);
+  const axisLocal = palmNormalW.applyQuaternion(wq.invert()).normalize();
+  mc.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(axisLocal, angle));
+  // Bake this into restQuats so animations start from the new rest.
+  restQuats[side]['thumb-metacarpal'] = mc.quaternion.clone();
+}
+
 // angles: [proximal, intermediate, distal] in radians; positive curls toward the palm.
 function setFinger(side, finger, angles) {
   const names = finger === 'thumb'
@@ -272,9 +300,6 @@ function solveTaps() {
 // --- Pose states ------------------------------------------------------------
 
 const RELAXED = [0.15, 0.18, 0.1];
-// Thumb of the right hand must not poke through the left palm.
-// Tucking it up (high proximal angle) keeps it well clear.
-const THUMB_TUCKED = [0.55, 0.3, 0.05];
 const LIFTED = [-0.38, -0.08, 0.0];
 const TAP_SHAPE = [1, 0.4, 0.2];    // proportions of the curl; the size is solved per finger
 const tapAngles = {};               // finger -> [p, i, d] that puts its tip on the left palm
@@ -287,8 +312,6 @@ const FINGER_OF = {
 function poseState(name) {
   const s = { y: 0, slide: 0, flip: 0, strike: true, fingers: {} };
   for (const f of FINGERS) s.fingers[f] = RELAXED.slice();
-  // Keep the right thumb tucked away from the left palm in all non-tap poses.
-  s.fingers['thumb'] = THUMB_TUCKED.slice();
   switch (name) {
     case 'CLAP': break;
     case 'WAVE': s.flip = Math.PI; break;

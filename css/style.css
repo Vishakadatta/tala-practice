@@ -72,6 +72,22 @@ body {
   font-weight: 500;
   border-bottom-color: var(--rule);
 }
+.tala-list li.tala-group-header {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  padding: 0.6rem 1rem 0.2rem;
+  cursor: default;
+  border-top: 1px solid var(--rule);
+  margin-top: 0.25rem;
+  pointer-events: none;
+}
+.tala-list li.tala-group-header:first-child {
+  border-top: none;
+  margin-top: 0;
+}
 
 /* Main */
 #main {

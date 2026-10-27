@@ -30,7 +30,18 @@ async function boot() {
 
 function buildSidebar() {
   const list = $('#tala-list');
+
+  // Group talas by their family group label
+  let currentGroup = null;
   for (const tala of TALAS) {
+    const g = tala.group || '';
+    if (g !== currentGroup) {
+      currentGroup = g;
+      const header = document.createElement('li');
+      header.className = 'tala-group-header';
+      header.textContent = g;
+      list.appendChild(header);
+    }
     const li = document.createElement('li');
     li.textContent = tala.common;
     li.dataset.id = tala.id;
@@ -57,7 +68,7 @@ function selectTala(tala) {
     : tala.name;
   $('#tala-name').textContent = name;
 
-  const totalBeats = tala.chapu ? tala.beats : tala.angas.reduce((s, a) => s + a.beats, 0);
+  const totalBeats = tala.chapu ? tala.beats : (tala.totalBeats || tala.angas.reduce((s, a) => s + a.beats, 0));
   $('#tala-info').textContent = `${totalBeats} beats · ${tala.symbol}`;
 
   const kalaiLabel = $('#kalai-label');

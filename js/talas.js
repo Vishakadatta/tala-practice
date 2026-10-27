@@ -1,5 +1,6 @@
-// Anga types: L = laghu, D = drutam, A = anudrutam
-// Gestures: CLAP, FINGER_LITTLE, FINGER_RING, FINGER_MIDDLE, FINGER_INDEX, FINGER_THUMB, WAVE, NONE
+// Suladi Sapta Tala system: 7 talas × 5 jatis = 35 talas, plus 2 chapu talas.
+// Anga types: L = laghu (variable), D = drutam (2 beats), A = anudrutam (1 beat)
+// Jatis: Tisra=3, Chatusra=4, Khanda=5, Misra=7, Sankeerna=9
 
 export const GESTURES = {
   CLAP: 'CLAP',
@@ -12,6 +13,15 @@ export const GESTURES = {
   NONE: 'NONE',
 };
 
+// Jati definitions
+const JATIS = [
+  { name: 'Tisra',     beats: 3 },
+  { name: 'Chatusra',  beats: 4 },
+  { name: 'Khanda',    beats: 5 },
+  { name: 'Misra',     beats: 7 },
+  { name: 'Sankeerna', beats: 9 },
+];
+
 function laghu(jati) {
   const g = [GESTURES.CLAP];
   const fingers = [
@@ -21,9 +31,7 @@ function laghu(jati) {
     GESTURES.FINGER_INDEX,
     GESTURES.FINGER_THUMB,
   ];
-  for (let i = 0; i < jati - 1; i++) {
-    g.push(fingers[i % fingers.length]);
-  }
+  for (let i = 0; i < jati - 1; i++) g.push(fingers[i % fingers.length]);
   return { type: 'L', name: 'Laghu', jati, beats: jati, gestures: g };
 }
 
@@ -35,31 +43,110 @@ function anudrutam() {
   return { type: 'A', name: 'Anudrutam', beats: 1, gestures: [GESTURES.CLAP] };
 }
 
-export const TALAS = [
+// Suladi Sapta Tala family definitions
+// Format: { familyId, familyName, symbol(jati), angasFn(jati) }
+const SAPTA_FAMILIES = [
   {
-    id: 'adi',
-    name: 'Chatusra Jathi Triputa Tala',
-    common: 'Adi Tala',
-    symbol: '|4 O O',
-    hasKalai: true,
-    angas: [laghu(4), drutam(), drutam()],
+    familyId: 'dhruva',
+    familyName: 'Dhruva',
+    // L D L L  — symbol uses | for laghu, O for drutam
+    symbolFn: j => `|${j} O |${j} |${j}`,
+    angasFn: j => [laghu(j), drutam(), laghu(j), laghu(j)],
   },
   {
-    id: 'rupaka',
-    name: 'Chatusra Jathi Rupaka Tala',
-    common: 'Rupaka Tala',
-    // Traditional 6-beat keeping: Drutam (clap+wave) + Laghu-4 (clap, little, ring, middle)
-    // Samam on the Drutam clap: clap · wave · clap · little · ring · middle
-    symbol: 'O |',
-    hasKalai: false,
-    angas: [drutam(), laghu(4)],
+    familyId: 'mathya',
+    familyName: 'Mathya',
+    // L D L
+    symbolFn: j => `|${j} O |${j}`,
+    angasFn: j => [laghu(j), drutam(), laghu(j)],
   },
+  {
+    familyId: 'rupaka',
+    familyName: 'Rupaka',
+    // D L
+    symbolFn: j => `O |${j}`,
+    angasFn: j => [drutam(), laghu(j)],
+  },
+  {
+    familyId: 'jhampa',
+    familyName: 'Jhampa',
+    // L A D
+    symbolFn: j => `|${j} U O`,
+    angasFn: j => [laghu(j), anudrutam(), drutam()],
+  },
+  {
+    familyId: 'triputa',
+    familyName: 'Triputa',
+    // L D D
+    symbolFn: j => `|${j} O O`,
+    angasFn: j => [laghu(j), drutam(), drutam()],
+  },
+  {
+    familyId: 'ata',
+    familyName: 'Ata',
+    // L L D D
+    symbolFn: j => `|${j} |${j} O O`,
+    angasFn: j => [laghu(j), laghu(j), drutam(), drutam()],
+  },
+  {
+    familyId: 'eka',
+    familyName: 'Eka',
+    // L
+    symbolFn: j => `|${j}`,
+    angasFn: j => [laghu(j)],
+  },
+];
+
+// Jati short names for tala common names
+const JATI_PREFIX = {
+  3: 'Tisra Jathi',
+  4: 'Chatusra Jathi',
+  5: 'Khanda Jathi',
+  7: 'Misra Jathi',
+  9: 'Sankeerna Jathi',
+};
+
+// Build all 35 suladi talas
+function buildSaptaTalas() {
+  const talas = [];
+  for (const fam of SAPTA_FAMILIES) {
+    for (const jati of JATIS) {
+      const j = jati.beats;
+      const angas = fam.angasFn(j);
+      const totalBeats = angas.reduce((s, a) => s + a.beats, 0);
+      // Chatusra Triputa = Adi Tala (special case common name)
+      const isAdi = fam.familyId === 'triputa' && j === 4;
+      // Chatusra Rupaka = the common Rupaka
+      const isCommonRupaka = fam.familyId === 'rupaka' && j === 4;
+      talas.push({
+        id: `${fam.familyId}_${j}`,
+        name: `${JATI_PREFIX[j]} ${fam.familyName} Tala`,
+        common: isAdi
+          ? 'Adi Tala'
+          : isCommonRupaka
+          ? 'Rupaka Tala'
+          : `${jati.name} ${fam.familyName}`,
+        symbol: fam.symbolFn(j),
+        group: fam.familyName,
+        hasKalai: isAdi,
+        totalBeats,
+        angas,
+      });
+    }
+  }
+  return talas;
+}
+
+const SAPTA_TALAS = buildSaptaTalas();
+
+// Chapu talas (not part of the sapta system)
+const CHAPU_TALAS = [
   {
     id: 'misra_chapu',
     name: 'Misra Chapu',
     common: 'Misra Chapu',
-    // 3+2+2 = 7 beats; clap on beat 1 (samam), beat 4, beat 6 (1-indexed)
     symbol: '(3+2+2)',
+    group: 'Chapu',
     hasKalai: false,
     chapu: true,
     beats: 7,
@@ -71,8 +158,8 @@ export const TALAS = [
     id: 'khanda_chapu',
     name: 'Khanda Chapu',
     common: 'Khanda Chapu',
-    // 2+1+2 = 5 beats; clap on beats 1, 3, 4 (1-indexed) = indices 0, 2, 3
     symbol: '(2+1+2)',
+    group: 'Chapu',
     hasKalai: false,
     chapu: true,
     beats: 5,
@@ -81,6 +168,8 @@ export const TALAS = [
     clapBeats: [0, 2, 3],
   },
 ];
+
+export const TALAS = [...SAPTA_TALAS, ...CHAPU_TALAS];
 
 export function expandTala(tala, kalai = 1) {
   if (tala.chapu) {

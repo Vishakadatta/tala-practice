@@ -5,12 +5,10 @@ let pendingVolume = 0.7;
 
 export function initAudio() {
   if (ctx) {
-    // Mobile browsers suspend AudioContext until a user gesture; resume on every Start tap.
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
-  ctx = new AudioContext();
-  // Kick resume immediately — this call is always inside a click/touch handler (the Start button).
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
   ctx.resume();
   masterGain = ctx.createGain();
   masterGain.gain.value = pendingVolume;
@@ -22,12 +20,31 @@ export function getContext() { return ctx; }
 
 export function setVolume(v) {
   pendingVolume = Math.max(0, Math.min(1, v));
-  if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, v));
+  if (masterGain) masterGain.gain.value = pendingVolume;
 }
 
-function noiseBurst(time, freq, q, dur, gain) {
-  if (!ctx) return;
-  const len = Math.ceil(ctx.sampleRate * dur);
+// Low-level: schedule a short tone burst
+function tone(time, freq, dur, gainPeak) {
+  if (!ctx || !masterGain) return;
+  const osc = ctx.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.value = freq;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(gainPeak, time + 0.003);
+  env.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+
+  osc.connect(env);
+  env.connect(masterGain);
+  osc.start(time);
+  osc.stop(time + dur + 0.01);
+}
+
+// Noise burst filtered to a frequency band
+function noise(time, freq, q, dur, gainPeak) {
+  if (!ctx || !masterGain) return;
+  const len = Math.ceil(ctx.sampleRate * (dur + 0.02));
   const buf = ctx.createBuffer(1, len, ctx.sampleRate);
   const data = buf.getChannelData(0);
   for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
@@ -36,57 +53,54 @@ function noiseBurst(time, freq, q, dur, gain) {
   src.buffer = buf;
 
   const bp = ctx.createBiquadFilter();
-  bp.type = freq > 800 ? 'bandpass' : 'lowpass';
+  bp.type = 'bandpass';
   bp.frequency.value = freq;
   bp.Q.value = q;
 
   const env = ctx.createGain();
-  env.gain.setValueAtTime(gain, time);
-  env.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  env.gain.setValueAtTime(gainPeak, time);
+  env.gain.exponentialRampToValueAtTime(0.0001, time + dur);
 
-  src.connect(bp).connect(env).connect(masterGain);
+  src.connect(bp);
+  bp.connect(env);
+  env.connect(masterGain);
   src.start(time);
-  src.stop(time + dur);
-}
-
-function sineTick(time, freq, dur, gain) {
-  if (!ctx) return;
-  const osc = ctx.createOscillator();
-  osc.frequency.value = freq;
-  const env = ctx.createGain();
-  env.gain.setValueAtTime(gain, time);
-  env.gain.exponentialRampToValueAtTime(0.001, time + dur);
-  osc.connect(env).connect(masterGain);
-  osc.start(time);
-  osc.stop(time + dur);
+  src.stop(time + dur + 0.02);
 }
 
 export function playSound(type, time) {
-  if (!ctx) return;
-  const t = time || ctx.currentTime;
+  if (!ctx || !masterGain) return;
+  const t = (time !== undefined && time > ctx.currentTime) ? time : ctx.currentTime + 0.005;
 
   switch (type) {
     case 'SAMAM':
-      noiseBurst(t, 1200, 1.0, 0.01, 0.7);
-      noiseBurst(t + 0.012, 1200, 1.0, 0.01, 0.6);
-      noiseBurst(t + 0.024, 1200, 1.0, 0.1, 0.5);
+      noise(t, 900, 2, 0.12, 0.9);
+      noise(t + 0.015, 900, 2, 0.08, 0.6);
+      tone(t, 220, 0.08, 0.35);
       break;
+
     case 'CLAP':
-      noiseBurst(t, 1200, 1.0, 0.01, 0.45);
-      noiseBurst(t + 0.012, 1200, 1.0, 0.01, 0.38);
-      noiseBurst(t + 0.024, 1200, 1.0, 0.1, 0.32);
+      noise(t, 900, 2, 0.10, 0.6);
+      noise(t + 0.015, 900, 2, 0.07, 0.4);
+      tone(t, 180, 0.06, 0.2);
       break;
+
     case 'FINGER':
-      noiseBurst(t, 600, 1.0, 0.04, 0.12);
+      noise(t, 500, 1.5, 0.06, 0.3);
+      tone(t, 400, 0.05, 0.12);
       break;
+
     case 'WAVE':
-      noiseBurst(t, 500, 0.5, 0.05, 0.1);
+      noise(t, 300, 0.8, 0.08, 0.25);
+      tone(t, 150, 0.07, 0.1);
       break;
+
     case 'CHAPU_TICK':
-      sineTick(t, 1000, 0.015, 0.06);
+      tone(t, 800, 0.04, 0.15);
       break;
+
     case 'NADAI':
-      sineTick(t, 2000, 0.01, 0.04);
+      tone(t, 1200, 0.02, 0.07);
       break;
   }
 }

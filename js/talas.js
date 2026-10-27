@@ -48,35 +48,36 @@ export const TALAS = [
     id: 'rupaka',
     name: 'Chatusra Jathi Rupaka Tala',
     common: 'Rupaka Tala',
-    // Rupaka in common practice = 3 beats: clap (samam) · clap · wave
-    // Structural: Drutam (clap+wave) + Anudrutam (clap), but kept as 3 counts:
-    //   beat 1 = clap (samam), beat 2 = clap, beat 3 = wave
-    symbol: 'O U',
+    // Traditional 6-beat keeping: Drutam (clap+wave) + Laghu-4 (clap, little, ring, middle)
+    // Samam on the Drutam clap: clap · wave · clap · little · ring · middle
+    symbol: 'O |',
     hasKalai: false,
-    angas: [anudrutam(), drutam()],
+    angas: [drutam(), laghu(4)],
   },
   {
     id: 'misra_chapu',
     name: 'Misra Chapu',
     common: 'Misra Chapu',
+    // 3+2+2 = 7 beats; clap on beat 1 (samam), beat 4, beat 6 (1-indexed)
     symbol: '(3+2+2)',
     hasKalai: false,
     chapu: true,
     beats: 7,
     groups: [3, 2, 2],
+    groupNames: ['Clap (3)', 'Clap (2)', 'Clap (2)'],
     clapBeats: [0, 3, 5],
   },
   {
     id: 'khanda_chapu',
     name: 'Khanda Chapu',
     common: 'Khanda Chapu',
-    // 2+1+2 = 5 beats: clap(0), none(1), clap(2), clap(3), none(4)
-    // Accented beats (1-indexed): 1, 3, 4 → (0-indexed): 0, 2, 3 — all claps
+    // 2+1+2 = 5 beats; clap on beats 1, 3, 4 (1-indexed) = indices 0, 2, 3
     symbol: '(2+1+2)',
     hasKalai: false,
     chapu: true,
     beats: 5,
     groups: [2, 1, 2],
+    groupNames: ['Clap (2)', 'Clap (1)', 'Clap (2)'],
     clapBeats: [0, 2, 3],
   },
 ];
@@ -87,7 +88,9 @@ export function expandTala(tala, kalai = 1) {
     let beatIdx = 0;
     let groupIdx = 0;
     for (const groupSize of tala.groups) {
-      const groupName = `Group ${groupIdx + 1}`;
+      const groupName = tala.groupNames
+        ? tala.groupNames[groupIdx]
+        : `Group ${groupIdx + 1}`;
       for (let i = 0; i < groupSize; i++) {
         const isClap = tala.clapBeats.includes(beatIdx);
         beats.push({

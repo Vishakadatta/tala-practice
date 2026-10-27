@@ -48,10 +48,12 @@ export const TALAS = [
     id: 'rupaka',
     name: 'Chatusra Jathi Rupaka Tala',
     common: 'Rupaka Tala',
-    // Rupaka = Drutam (wave + clap) then Laghu (clap)  →  3 beats total
-    symbol: 'O |',
+    // Rupaka in common practice = 3 beats: clap (samam) · clap · wave
+    // Structural: Drutam (clap+wave) + Anudrutam (clap), but kept as 3 counts:
+    //   beat 1 = clap (samam), beat 2 = clap, beat 3 = wave
+    symbol: 'O U',
     hasKalai: false,
-    angas: [drutam(), laghu(4)],
+    angas: [anudrutam(), drutam()],
   },
   {
     id: 'misra_chapu',
@@ -68,14 +70,14 @@ export const TALAS = [
     id: 'khanda_chapu',
     name: 'Khanda Chapu',
     common: 'Khanda Chapu',
-    // 2+1+2: clap(0), none(1), wave(2), clap(3), none(4)
+    // 2+1+2 = 5 beats: clap(0), none(1), clap(2), clap(3), none(4)
+    // Accented beats (1-indexed): 1, 3, 4 → (0-indexed): 0, 2, 3 — all claps
     symbol: '(2+1+2)',
     hasKalai: false,
     chapu: true,
     beats: 5,
     groups: [2, 1, 2],
-    clapBeats: [0, 3],
-    waveBeats: [2],
+    clapBeats: [0, 2, 3],
   },
 ];
 

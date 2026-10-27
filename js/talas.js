@@ -90,15 +90,13 @@ export function expandTala(tala, kalai = 1) {
       const groupName = `Group ${groupIdx + 1}`;
       for (let i = 0; i < groupSize; i++) {
         const isClap = tala.clapBeats.includes(beatIdx);
-        const isWave = (tala.waveBeats || []).includes(beatIdx);
-        const gesture = isClap ? GESTURES.CLAP : isWave ? GESTURES.WAVE : GESTURES.NONE;
         beats.push({
           index: beatIdx,
-          gesture,
+          gesture: isClap ? GESTURES.CLAP : GESTURES.WAVE,
           angaName: groupName,
           angaIndex: groupIdx,
           isSamam: beatIdx === 0,
-          sound: isClap ? (beatIdx === 0 ? 'SAMAM' : 'CLAP') : isWave ? 'WAVE' : 'CHAPU_TICK',
+          sound: isClap ? (beatIdx === 0 ? 'SAMAM' : 'CLAP') : 'CHAPU_TICK',
         });
         beatIdx++;
       }

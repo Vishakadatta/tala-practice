@@ -118,6 +118,18 @@ function buildSaptaTalas() {
       const isAdi = fam.familyId === 'triputa' && j === 4;
       // Chatusra Rupaka = the common Rupaka
       const isCommonRupaka = fam.familyId === 'rupaka' && j === 4;
+      // Common Rupaka exception: people practice it as 3 counts (D+A = clap·clap·wave).
+      // Textbook is D+L(4) = 6 beats, but in common performance:
+      //   beat 1 = clap (samam), beat 2 = clap, beat 3 = wave
+      // Structure is kept as D(2)+A(1) so expandTala works correctly;
+      // overrideGestures maps beatIdx → gesture across those 3 beats.
+      const commonRupakaOverride = isCommonRupaka ? {
+        angas: [drutam(), anudrutam()],
+        totalBeats: 3,
+        symbol: 'O U',
+        overrideGestures: [GESTURES.CLAP, GESTURES.CLAP, GESTURES.WAVE],
+      } : {};
+
       talas.push({
         id: `${fam.familyId}_${j}`,
         name: `${JATI_PREFIX[j]} ${fam.familyName} Tala`,
@@ -131,6 +143,7 @@ function buildSaptaTalas() {
         hasKalai: isAdi,
         totalBeats,
         angas,
+        ...commonRupakaOverride,
       });
     }
   }

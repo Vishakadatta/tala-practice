@@ -169,7 +169,16 @@ const CHAPU_TALAS = [
   },
 ];
 
-export const TALAS = [...SAPTA_TALAS, ...CHAPU_TALAS];
+// Pin Adi Tala and Rupaka Tala to the top, then all others in family order.
+// This matches common practice: learners start with Adi and Rupaka.
+const PINNED_IDS = ['triputa_4', 'rupaka_4'];
+const pinnedTalas = PINNED_IDS.map(id => SAPTA_TALAS.find(t => t.id === id));
+const otherTalas  = [...SAPTA_TALAS, ...CHAPU_TALAS].filter(t => !PINNED_IDS.includes(t.id));
+
+export const TALAS = [
+  ...pinnedTalas.map(t => ({ ...t, group: 'Common' })),
+  ...otherTalas,
+];
 
 export function expandTala(tala, kalai = 1) {
   if (tala.chapu) {

@@ -45,13 +45,20 @@ function buildSidebar() {
     const li = document.createElement('li');
     li.textContent = tala.common;
     li.dataset.id = tala.id;
-    li.addEventListener('click', () => selectTala(tala));
+    li.addEventListener('click', () => { selectTala(tala); collapseSidebarOnMobile(); });
     list.appendChild(li);
   }
 
   $('#sidebar-toggle').addEventListener('click', () => {
     $('#sidebar').classList.toggle('collapsed');
   });
+}
+
+/** Collapse sidebar on narrow viewports (mobile) after a tala is chosen. */
+function collapseSidebarOnMobile() {
+  if (window.innerWidth <= 768) {
+    $('#sidebar').classList.add('collapsed');
+  }
 }
 
 function selectTala(tala) {

@@ -4,8 +4,14 @@ let masterGain = null;
 let pendingVolume = 0.7;
 
 export function initAudio() {
-  if (ctx) return ctx;
+  if (ctx) {
+    // Mobile browsers suspend AudioContext until a user gesture; resume on every Start tap.
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
   ctx = new AudioContext();
+  // Kick resume immediately — this call is always inside a click/touch handler (the Start button).
+  ctx.resume();
   masterGain = ctx.createGain();
   masterGain.gain.value = pendingVolume;
   masterGain.connect(ctx.destination);

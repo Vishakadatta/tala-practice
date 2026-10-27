@@ -272,6 +272,9 @@ function solveTaps() {
 // --- Pose states ------------------------------------------------------------
 
 const RELAXED = [0.15, 0.18, 0.1];
+// Thumb of the right hand must not poke through the left palm.
+// Tucking it up (high proximal angle) keeps it well clear.
+const THUMB_TUCKED = [0.55, 0.3, 0.05];
 const LIFTED = [-0.38, -0.08, 0.0];
 const TAP_SHAPE = [1, 0.4, 0.2];    // proportions of the curl; the size is solved per finger
 const tapAngles = {};               // finger -> [p, i, d] that puts its tip on the left palm
@@ -284,6 +287,8 @@ const FINGER_OF = {
 function poseState(name) {
   const s = { y: 0, slide: 0, flip: 0, strike: true, fingers: {} };
   for (const f of FINGERS) s.fingers[f] = RELAXED.slice();
+  // Keep the right thumb tucked away from the left palm in all non-tap poses.
+  s.fingers['thumb'] = THUMB_TUCKED.slice();
   switch (name) {
     case 'CLAP': break;
     case 'WAVE': s.flip = Math.PI; break;

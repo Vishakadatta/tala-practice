@@ -283,4 +283,5 @@ input[type="range"] {
   #main { padding: 0.75rem; }
   .canvas-wrap { height: 260px; }
   .tala-name { font-size: 1.2rem; }
+  #tala-header { padding-left: 2.25rem; }
 }

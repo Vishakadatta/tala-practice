@@ -124,6 +124,13 @@ function buildAngaStrip(tala) {
 function scheduleUI(beatIndex, beat, time) {
   const ctx = getContext();
   if (!ctx) return;
+  // The hand's contact lands exactly on the audio time of this beat.
+  const poseOf = b => (b.gesture === 'NONE' ? 'REST' : b.gesture);
+  hands.schedulePose(poseOf(beat), time);
+  // Also tell the hand the following beat now, so it rises and travels the whole
+  // beat instead of waiting for the audio scheduler's short lookahead.
+  const beats = engine.getBeats();
+  hands.schedulePose(poseOf(beats[(beatIndex + 1) % beats.length]), time + 60 / engine.getBpm(), true);
   const delay = Math.max(0, (time - ctx.currentTime) * 1000);
   setTimeout(() => {
     if (!playing) return;
@@ -133,14 +140,12 @@ function scheduleUI(beatIndex, beat, time) {
     if (cell) cell.classList.add('active');
 
     $('#anga-label').textContent = beat.angaName;
-
-    const pose = beat.gesture === 'NONE' ? 'REST' : beat.gesture;
-    hands.setPose(pose);
   }, delay);
 }
 
 function startPlayback() {
-  initAudio();
+  const ctx = initAudio();
+  hands.setClock(() => ctx.currentTime);
   engine.onBeatCallback(scheduleUI);
   engine.start();
   playing = true;
@@ -153,7 +158,7 @@ function stopPlayback() {
   $('#btn-start').textContent = 'Start';
   $$('.beat-cell').forEach(c => c.classList.remove('active'));
   $('#anga-label').textContent = '';
-  hands.setPose('REST');
+  hands.settle();
 }
 
 function wireControls() {
@@ -177,7 +182,7 @@ function wireControls() {
   });
 
   $('#volume').addEventListener('input', e => {
-    setVolume(parseFloat(e.target.value));
+    setVolume(parseFloat(e.target.value) / 100);
   });
 
   $('#kalai-toggle').addEventListener('change', e => {
@@ -203,6 +208,16 @@ function wireControls() {
       $('#btn-start').click();
     }
   });
+
+  // Developer aid: add ?debug to the URL, then keys 0-7 show each pose.
+  if (location.search.includes('debug')) {
+    const poses = ['REST', 'CLAP', 'FINGER_LITTLE', 'FINGER_RING', 'FINGER_MIDDLE',
+      'FINGER_INDEX', 'FINGER_THUMB', 'WAVE'];
+    document.addEventListener('keydown', e => {
+      const i = parseInt(e.key, 10);
+      if (!playing && i >= 0 && i < poses.length) hands.setPose(poses[i]);
+    });
+  }
 }
 
 boot();

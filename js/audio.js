@@ -1,11 +1,13 @@
 let ctx = null;
 let masterGain = null;
 
+let pendingVolume = 0.7;
+
 export function initAudio() {
   if (ctx) return ctx;
   ctx = new AudioContext();
   masterGain = ctx.createGain();
-  masterGain.gain.value = 0.7;
+  masterGain.gain.value = pendingVolume;
   masterGain.connect(ctx.destination);
   return ctx;
 }
@@ -13,6 +15,7 @@ export function initAudio() {
 export function getContext() { return ctx; }
 
 export function setVolume(v) {
+  pendingVolume = Math.max(0, Math.min(1, v));
   if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, v));
 }
 

@@ -48,12 +48,10 @@ export const TALAS = [
     id: 'rupaka',
     name: 'Chatusra Jathi Rupaka Tala',
     common: 'Rupaka Tala',
-    symbol: '| O',
+    // Rupaka = Drutam (wave + clap) then Laghu (clap)  →  3 beats total
+    symbol: 'O |',
     hasKalai: false,
-    angas: [
-      { type: 'L', name: 'Laghu', jati: 4, beats: 1, gestures: [GESTURES.CLAP] },
-      drutam(),
-    ],
+    angas: [drutam(), laghu(4)],
   },
   {
     id: 'misra_chapu',
@@ -70,12 +68,14 @@ export const TALAS = [
     id: 'khanda_chapu',
     name: 'Khanda Chapu',
     common: 'Khanda Chapu',
+    // 2+1+2: clap(0), none(1), wave(2), clap(3), none(4)
     symbol: '(2+1+2)',
     hasKalai: false,
     chapu: true,
     beats: 5,
     groups: [2, 1, 2],
-    clapBeats: [0, 2, 3],
+    clapBeats: [0, 3],
+    waveBeats: [2],
   },
 ];
 
@@ -88,13 +88,15 @@ export function expandTala(tala, kalai = 1) {
       const groupName = `Group ${groupIdx + 1}`;
       for (let i = 0; i < groupSize; i++) {
         const isClap = tala.clapBeats.includes(beatIdx);
+        const isWave = (tala.waveBeats || []).includes(beatIdx);
+        const gesture = isClap ? GESTURES.CLAP : isWave ? GESTURES.WAVE : GESTURES.NONE;
         beats.push({
           index: beatIdx,
-          gesture: isClap ? GESTURES.CLAP : GESTURES.NONE,
+          gesture,
           angaName: groupName,
           angaIndex: groupIdx,
           isSamam: beatIdx === 0,
-          sound: isClap ? (beatIdx === 0 ? 'SAMAM' : 'CLAP') : 'CHAPU_TICK',
+          sound: isClap ? (beatIdx === 0 ? 'SAMAM' : 'CLAP') : isWave ? 'WAVE' : 'CHAPU_TICK',
         });
         beatIdx++;
       }

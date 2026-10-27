@@ -156,7 +156,9 @@ async function loadHands() {
 
   // A relaxed, slightly cupped resting hand looks natural; a dead-flat one does not.
   for (const f of FINGERS) {
-    if (f === 'thumb') setFinger('left', f, [0.05, 0.08, 0]);
+    // Thumb: tuck it clearly to the side of the palm so it never pokes the right hand.
+    // Higher proximal angle rotates the thumb down-and-inward (away from the right hand).
+    if (f === 'thumb') setFinger('left', f, [0.45, 0.25, 0.05]);
     else setFinger('left', f, [0.12, 0.14, 0.08]);
   }
 }

@@ -31,9 +31,7 @@ body {
   transition: margin-left 0.2s;
   overflow-y: auto;
 }
-.sidebar.collapsed {
-  margin-left: -220px;
-}
+/* Desktop: sidebar always visible. Mobile uses .open (see media query below). */
 .sidebar-toggle {
   position: fixed;
   top: 0.5rem;
@@ -285,7 +283,7 @@ input[type="range"] {
   accent-color: var(--accent-red);
 }
 
-/* Narrow viewport: sidebar starts hidden, toggle opens it */
+/* Narrow viewport: sidebar hidden by default, .open shows it */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -294,7 +292,7 @@ input[type="range"] {
     background: var(--bg);
     margin-left: -220px;
   }
-  .sidebar.collapsed { margin-left: 0; }
+  .sidebar.open { margin-left: 0; }
   #main { padding: 0.75rem; }
   .canvas-wrap { height: 260px; }
   .tala-name { font-size: 1.2rem; }

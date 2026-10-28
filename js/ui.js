@@ -50,14 +50,14 @@ function buildSidebar() {
   }
 
   $('#sidebar-toggle').addEventListener('click', () => {
-    $('#sidebar').classList.toggle('collapsed');
+    $('#sidebar').classList.toggle('open');
   });
 }
 
-/** Collapse sidebar on narrow viewports (mobile) after a tala is chosen. */
+/** Close sidebar on narrow viewports after a tala is chosen. */
 function collapseSidebarOnMobile() {
   if (window.innerWidth <= 768) {
-    $('#sidebar').classList.add('collapsed');
+    $('#sidebar').classList.remove('open');
   }
 }
 

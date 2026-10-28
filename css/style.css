@@ -27,7 +27,7 @@ body {
   width: 220px;
   min-width: 220px;
   border-right: 1px solid var(--rule);
-  padding: 2.5rem 0 1rem; /* top pad clears the fixed sidebar-toggle button */
+  padding: 1rem 0;
   transition: margin-left 0.2s;
   overflow-y: auto;
 }

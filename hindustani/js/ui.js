@@ -1,9 +1,9 @@
 // Keep ?v= identical everywhere and raise it with each release: a browser may otherwise
-// mix cached old modules with new ones, and a mismatch here would duplicate a module.
-import { TALAS, expandTala } from './talas.js?v=3';
-import * as hands from './hands.js?v=3';
-import * as engine from './engine.js?v=3';
-import { initAudio, getContext, setVolume, loadSamples } from './audio.js?v=3';
+// mix cached old modules with new ones. npm run check enforces this.
+import { TALAS, expandTala } from './talas.js?v=4';
+import * as hands from '../../js/hands.js?v=4';
+import * as engine from './engine.js?v=4';
+import { initAudio, getContext, setVolume, loadSamples } from './audio.js?v=4';
 
 const LOAD_ERROR = 'Tabla sounds could not load. Check your connection and press Start again.';
 const BLOCKED_ERROR = 'The browser is blocking sound. Press Stop, then Start again.';
@@ -37,12 +37,19 @@ async function boot() {
   selectTala(TALAS[0]);
 }
 
+function textSpan(className, text) {
+  const span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  return span;
+}
+
 function buildSidebar() {
   const list = $('#tala-list');
 
   for (const tala of TALAS) {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="tala-item-name">${tala.name}</span><span class="tala-item-hi">${tala.nameHi}</span>`;
+    li.append(textSpan('tala-item-name', tala.name), textSpan('tala-item-hi', tala.nameHi));
     li.dataset.id = tala.id;
     li.addEventListener('click', () => { selectTala(tala); collapseSidebarOnMobile(); });
     list.appendChild(li);
@@ -91,7 +98,7 @@ function selectTala(tala) {
 
 function buildBeatStrip(tala) {
   const strip = $('#anga-strip');
-  strip.innerHTML = '';
+  strip.replaceChildren();
 
   const beats = expandTala(tala, engine.getKalai());
   let currentVibhag = -1;

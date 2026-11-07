@@ -5,7 +5,8 @@ let pendingVolume = 0.7;
 
 export function initAudio() {
   if (ctx) {
-    if (ctx.state === 'suspended') ctx.resume();
+    // Safari can also report 'interrupted' after the app or tab has been in the background.
+    if (ctx.state !== 'running') ctx.resume();
     return ctx;
   }
   ctx = new (window.AudioContext || window.webkitAudioContext)();

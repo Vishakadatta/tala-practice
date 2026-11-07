@@ -137,8 +137,8 @@ function addContactShadow() {
 async function loadHands() {
   const loader  = new GLTFLoader();
   const [lg, rg] = await Promise.all([
-    loader.loadAsync('assets/hands/left.glb'),
-    loader.loadAsync('assets/hands/right.glb'),
+    loader.loadAsync(new URL('../assets/hands/left.glb', import.meta.url).href),
+    loader.loadAsync(new URL('../assets/hands/right.glb', import.meta.url).href),
   ]);
 
   for (const [side, gltf] of [['left', lg], ['right', rg]]) {

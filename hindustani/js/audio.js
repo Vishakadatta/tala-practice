@@ -113,8 +113,8 @@ export function loadSamples() {
 async function decodeSamples() {
   const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const decoder = new Offline(1, 1, SAMPLE_RATE);
-  const files = Object.values(STROKES).flatMap(stroke => stroke.files);
-  await Promise.all(files.map(async file => {
+  const files = new Set(Object.values(STROKES).flatMap(stroke => stroke.files));
+  await Promise.all([...files].map(async file => {
     const data = await fetchSample(file);
     // Callback form: older Safari has no promise-returning decodeAudioData.
     const buffer = await new Promise((ok, fail) => decoder.decodeAudioData(data, ok, fail));

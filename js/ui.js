@@ -1,7 +1,8 @@
-import { TALAS, expandTala } from './talas.js';
-import * as hands from './hands.js';
-import * as engine from './engine.js';
-import { initAudio, getContext, setVolume } from './audio.js';
+// Keep ?v= identical everywhere and raise it with each release: npm run check enforces this.
+import { TALAS, expandTala } from './talas.js?v=4';
+import * as hands from './hands.js?v=4';
+import * as engine from './engine.js?v=4';
+import { initAudio, getContext, setVolume } from './audio.js?v=4';
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -79,7 +80,7 @@ function selectTala(tala) {
   $('#tala-info').textContent = `${totalBeats} beats · ${tala.symbol}`;
 
   const kalaiLabel = $('#kalai-label');
-  kalaiLabel.style.display = tala.hasKalai ? '' : 'none';
+  kalaiLabel.classList.toggle('is-hidden', !tala.hasKalai);
   $('#kalai-toggle').checked = false;
   engine.setKalai(1);
 
@@ -92,7 +93,7 @@ function selectTala(tala) {
 
 function buildAngaStrip(tala) {
   const strip = $('#anga-strip');
-  strip.innerHTML = '';
+  strip.replaceChildren();
 
   const beats = expandTala(tala, engine.getKalai());
   let currentAnga = -1;

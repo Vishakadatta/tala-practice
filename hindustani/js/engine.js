@@ -1,12 +1,12 @@
 import { expandTala } from './talas.js';
-import { playSound, getContext } from './audio.js';
+import { playBol, playSubdivision, getContext } from './audio.js';
 
 let running = false;
 let currentTala = null;
 let beats = [];
 let beatIndex = 0;
 let bpm = 60;
-let nadai = 4;
+let nadai = 1;
 let kalai = 1;
 let nextBeatTime = 0;
 let onBeat = null;
@@ -72,13 +72,13 @@ function scheduler() {
 
   while (nextBeatTime < ctx.currentTime + LOOKAHEAD) {
     const beat = beats[beatIndex];
-    playSound(beat.sound, nextBeatTime);
+    playBol(beat.bol, nextBeatTime, beatDuration, beat.isSamam);
 
     if (onBeat) onBeat(beatIndex, beat, nextBeatTime);
 
     for (let s = 1; s < nadai; s++) {
       const subTime = nextBeatTime + s * subDuration;
-      playSound('NADAI', subTime);
+      playSubdivision(subTime);
       if (onSubBeat) onSubBeat(beatIndex, s, subTime);
     }
 

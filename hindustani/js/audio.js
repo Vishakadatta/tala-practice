@@ -23,16 +23,96 @@ export function setVolume(v) {
   if (masterGain) masterGain.gain.value = pendingVolume;
 }
 
-// Low-level: schedule a short tone burst
-function tone(time, freq, dur, gainPeak) {
-  if (!ctx || !masterGain) return;
+const DAYAN_HZ = 293.66;
+const BAYAN_HZ = 98;
+const ACCENT = 0.85;
+const SUBDIVISION_LEVEL = 0.25;
+// Strokes overlap at fast tempos; this keeps the summed signal from clipping at full volume.
+const HEADROOM = 0.34;
+
+// partials: [frequency ratio, amplitude, decay scale]. The dayan's tuned head rings in
+// whole-number harmonics. Upper bayan partials keep the bass audible on phone speakers.
+// slap: [band centre Hz, Q, duration, amplitude] for the hand's contact noise.
+const STROKES = {
+  na: {
+    base: DAYAN_HZ, decay: 0.32,
+    partials: [[1, 0.25, 0.5], [2, 0.7, 1], [3, 0.55, 0.7], [4, 0.3, 0.45], [5, 0.18, 0.3]],
+    slap: [3200, 1.2, 0.018, 0.5],
+  },
+  tin: {
+    base: DAYAN_HZ, decay: 0.5,
+    partials: [[1, 0.6, 1], [2, 0.9, 0.8], [3, 0.25, 0.4]],
+    slap: [2200, 1, 0.012, 0.25],
+  },
+  tun: {
+    base: DAYAN_HZ, decay: 0.65,
+    partials: [[1, 1, 1], [2, 0.25, 0.5]],
+    slap: [1500, 1, 0.012, 0.2],
+  },
+  ti: {
+    base: DAYAN_HZ, decay: 0.07,
+    partials: [[3, 0.7, 1], [4, 0.5, 0.8]],
+    slap: [2600, 1, 0.03, 1.4],
+  },
+  ge: {
+    base: BAYAN_HZ, decay: 0.5, glideFrom: 0.85, glideTime: 0.08,
+    partials: [[1, 0.9, 1], [2, 0.55, 0.8], [3, 0.3, 0.5], [4, 0.12, 0.35]],
+    slap: [400, 1, 0.025, 0.35],
+  },
+  ka: {
+    base: BAYAN_HZ, decay: 0.06,
+    partials: [[1, 0.8, 1], [3, 0.6, 0.7]],
+    slap: [700, 1, 0.05, 2.5],
+  },
+};
+
+// Each bol is [stroke, position within the beat]. A rest has no entry and stays silent.
+const BOLS = {
+  Dha: [['na', 0], ['ge', 0]],
+  Dhin: [['tin', 0], ['ge', 0]],
+  Dhi: [['ti', 0], ['ge', 0]],
+  Ta: [['na', 0]],
+  Na: [['na', 0]],
+  Tin: [['tin', 0]],
+  Ti: [['ti', 0]],
+  Tit: [['ti', 0]],
+  Tu: [['tun', 0]],
+  Ge: [['ge', 0]],
+  Ka: [['ka', 0]],
+  Kat: [['ka', 0]],
+  Kit: [['ka', 0], ['ti', 0.5]],
+  DhaGe: [['na', 0], ['ge', 0], ['ge', 0.5]],
+  TirKit: [['ti', 0], ['ti', 0.25], ['ka', 0.5], ['ti', 0.75]],
+  Gadi: [['ge', 0], ['ti', 0.5]],
+  Gana: [['ge', 0], ['na', 0.5]],
+};
+
+let noiseBuffer = null;
+
+function getNoiseBuffer() {
+  if (!noiseBuffer) {
+    noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuffer;
+}
+
+function ring(time, stroke, [ratio, amp, decayScale], level) {
+  const dur = stroke.decay * decayScale;
+  const freq = stroke.base * ratio;
   const osc = ctx.createOscillator();
-  osc.type = 'triangle';
-  osc.frequency.value = freq;
+  osc.type = 'sine';
+  if (stroke.glideFrom) {
+    osc.frequency.setValueAtTime(freq * stroke.glideFrom, time);
+    osc.frequency.exponentialRampToValueAtTime(freq, time + stroke.glideTime);
+  } else {
+    osc.frequency.value = freq;
+  }
 
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(gainPeak, time + 0.003);
+  env.gain.linearRampToValueAtTime(amp * level, time + 0.002);
   env.gain.exponentialRampToValueAtTime(0.0001, time + dur);
 
   osc.connect(env);
@@ -41,16 +121,9 @@ function tone(time, freq, dur, gainPeak) {
   osc.stop(time + dur + 0.01);
 }
 
-// Noise burst filtered to a frequency band
-function noise(time, freq, q, dur, gainPeak) {
-  if (!ctx || !masterGain) return;
-  const len = Math.ceil(ctx.sampleRate * (dur + 0.02));
-  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-
+function slap(time, [freq, q, dur, amp], level) {
   const src = ctx.createBufferSource();
-  src.buffer = buf;
+  src.buffer = getNoiseBuffer();
 
   const bp = ctx.createBiquadFilter();
   bp.type = 'bandpass';
@@ -58,49 +131,39 @@ function noise(time, freq, q, dur, gainPeak) {
   bp.Q.value = q;
 
   const env = ctx.createGain();
-  env.gain.setValueAtTime(gainPeak, time);
+  env.gain.setValueAtTime(amp * level, time);
   env.gain.exponentialRampToValueAtTime(0.0001, time + dur);
 
   src.connect(bp);
   bp.connect(env);
   env.connect(masterGain);
-  src.start(time);
-  src.stop(time + dur + 0.02);
+  src.start(time, Math.random() * 0.8);
+  src.stop(time + dur + 0.01);
 }
 
-export function playSound(type, time) {
+function playStroke(name, time, level) {
+  const stroke = STROKES[name];
+  const scaled = level * HEADROOM;
+  for (const partial of stroke.partials) ring(time, stroke, partial, scaled);
+  slap(time, stroke.slap, scaled);
+}
+
+function startTime(time) {
+  return time > ctx.currentTime ? time : ctx.currentTime + 0.005;
+}
+
+export function playBol(bol, time, beatDuration, isSam) {
   if (!ctx || !masterGain) return;
-  const t = (time !== undefined && time > ctx.currentTime) ? time : ctx.currentTime + 0.005;
-
-  switch (type) {
-    case 'SAMAM':
-      noise(t, 900, 2, 0.12, 0.9);
-      noise(t + 0.015, 900, 2, 0.08, 0.6);
-      tone(t, 220, 0.08, 0.35);
-      break;
-
-    case 'CLAP':
-      noise(t, 900, 2, 0.10, 0.6);
-      noise(t + 0.015, 900, 2, 0.07, 0.4);
-      tone(t, 180, 0.06, 0.2);
-      break;
-
-    case 'FINGER':
-      noise(t, 500, 1.5, 0.06, 0.3);
-      tone(t, 400, 0.05, 0.12);
-      break;
-
-    case 'WAVE':
-      noise(t, 300, 0.8, 0.08, 0.25);
-      tone(t, 150, 0.07, 0.1);
-      break;
-
-    case 'CHAPU_TICK':
-      tone(t, 800, 0.04, 0.15);
-      break;
-
-    case 'NADAI':
-      tone(t, 1200, 0.02, 0.07);
-      break;
+  const strokes = BOLS[bol];
+  if (!strokes) return;
+  const t = startTime(time);
+  const level = isSam ? 1 : ACCENT;
+  for (const [name, position] of strokes) {
+    playStroke(name, t + position * beatDuration, level);
   }
+}
+
+export function playSubdivision(time) {
+  if (!ctx || !masterGain) return;
+  playStroke('ti', startTime(time), SUBDIVISION_LEVEL);
 }

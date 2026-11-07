@@ -1,9 +1,9 @@
 // Keep ?v= identical everywhere and raise it with each release: a browser may otherwise
 // mix cached old modules with new ones, and a mismatch here would duplicate a module.
-import { TALAS, expandTala } from './talas.js?v=2';
-import * as hands from './hands.js?v=2';
-import * as engine from './engine.js?v=2';
-import { initAudio, getContext, setVolume, loadSamples } from './audio.js?v=2';
+import { TALAS, expandTala } from './talas.js?v=3';
+import * as hands from './hands.js?v=3';
+import * as engine from './engine.js?v=3';
+import { initAudio, getContext, setVolume, loadSamples } from './audio.js?v=3';
 
 const LOAD_ERROR = 'Tabla sounds could not load. Check your connection and press Start again.';
 const BLOCKED_ERROR = 'The browser is blocking sound. Press Stop, then Start again.';

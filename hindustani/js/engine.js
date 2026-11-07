@@ -1,5 +1,5 @@
-import { expandTala } from './talas.js?v=2';
-import { playBol, playSubdivision, getContext } from './audio.js?v=2';
+import { expandTala } from './talas.js?v=3';
+import { playBol, playSubdivision, getContext } from './audio.js?v=3';
 
 let running = false;
 let currentTala = null;

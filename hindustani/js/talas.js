@@ -63,7 +63,7 @@ export const TALAS = [
     vibhags: [3, 2, 2],
     markers: ['0', '2', '3'],
     samIsKhali: true,
-    theka: ['Tin','Tin','Na','Dhi','Na','Dhi','Na'],
+    theka: ['Tin','Tin','Na','Dhin','Na','Dhin','Na'],
   },
   {
     id: 'ektaal',

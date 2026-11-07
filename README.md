@@ -30,6 +30,7 @@ Select a tala from the sidebar and press Start. Use the controls to adjust tempo
 - [Three.js](https://threejs.org/) r162 for 3D rendering (loaded via import map from jsDelivr)
 - [WebXR Input Profiles](https://github.com/nicolewen/webxr-input-profiles) hand models (MIT)
 - Web Audio API for synthesized percussion sounds
+- Hindustani site: tabla recordings from [Naad](https://github.com/oormicreations/naad) by Oormi Creations (MIT, see `hindustani/assets/tabla/LICENSE`)
 - No frameworks, no bundler, no dependencies to install
 
 ## License

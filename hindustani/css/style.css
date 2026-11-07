@@ -231,6 +231,12 @@ body {
   min-height: 1.2em;
 }
 
+.sound-error {
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
 /* Controls */
 .controls {
   display: flex;

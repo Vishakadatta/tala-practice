@@ -1,7 +1,7 @@
 import { TALAS, expandTala } from './talas.js';
 import * as hands from './hands.js';
 import * as engine from './engine.js';
-import { initAudio, getContext, setVolume } from './audio.js';
+import { initAudio, getContext, setVolume, loadSamples } from './audio.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -13,7 +13,11 @@ async function boot() {
   const canvas = $('#scene');
   const wrap = $('#canvas-wrap');
 
-  await hands.init(canvas);
+  const samplesLoaded = loadSamples().catch(err => {
+    console.error('Tabla samples failed to load:', err);
+    $('#sound-error').hidden = false;
+  });
+  await Promise.all([hands.init(canvas), samplesLoaded]);
 
   const ro = new ResizeObserver(() => {
     const w = wrap.clientWidth;

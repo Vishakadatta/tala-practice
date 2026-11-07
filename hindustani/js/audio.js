@@ -23,129 +23,109 @@ export function setVolume(v) {
   if (masterGain) masterGain.gain.value = pendingVolume;
 }
 
-const DAYAN_HZ = 293.66;
-const BAYAN_HZ = 98;
-const ACCENT = 0.85;
+const SAMPLE_DIR = new URL('../assets/tabla/', import.meta.url);
+const SAMPLE_RATE = 44100;
+const LEVEL = 0.85;
+const SAM_LEVEL = 1;
 const SUBDIVISION_LEVEL = 0.25;
-// Strokes overlap at fast tempos; this keeps the summed signal from clipping at full volume.
-const HEADROOM = 0.34;
+const DAMP_TIME = 0.05;
+const FETCH_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 400;
 
-// partials: [frequency ratio, amplitude, decay scale]. The dayan's tuned head rings in
-// whole-number harmonics. Upper bayan partials keep the bass audible on phone speakers.
-// slap: [band centre Hz, Q, duration, amplitude] for the hand's contact noise.
+const DAYAN = 'dayan';
+const BAYAN = 'bayan';
+
 const STROKES = {
-  na: {
-    base: DAYAN_HZ, decay: 0.32,
-    partials: [[1, 0.25, 0.5], [2, 0.7, 1], [3, 0.55, 0.7], [4, 0.3, 0.45], [5, 0.18, 0.3]],
-    slap: [3200, 1.2, 0.018, 0.5],
-  },
-  tin: {
-    base: DAYAN_HZ, decay: 0.5,
-    partials: [[1, 0.6, 1], [2, 0.9, 0.8], [3, 0.25, 0.4]],
-    slap: [2200, 1, 0.012, 0.25],
-  },
-  tun: {
-    base: DAYAN_HZ, decay: 0.65,
-    partials: [[1, 1, 1], [2, 0.25, 0.5]],
-    slap: [1500, 1, 0.012, 0.2],
-  },
-  ti: {
-    base: DAYAN_HZ, decay: 0.07,
-    partials: [[3, 0.7, 1], [4, 0.5, 0.8]],
-    slap: [2600, 1, 0.03, 1.4],
-  },
-  ge: {
-    base: BAYAN_HZ, decay: 0.5, glideFrom: 0.85, glideTime: 0.08,
-    partials: [[1, 0.9, 1], [2, 0.55, 0.8], [3, 0.3, 0.5], [4, 0.12, 0.35]],
-    slap: [400, 1, 0.025, 0.35],
-  },
-  ka: {
-    base: BAYAN_HZ, decay: 0.06,
-    partials: [[1, 0.8, 1], [3, 0.6, 0.7]],
-    slap: [700, 1, 0.05, 2.5],
-  },
+  dha: { files: ['dha-1', 'dha-2'], drums: [DAYAN, BAYAN] },
+  dhin: { files: ['dhin-1', 'dhin-2'], drums: [DAYAN, BAYAN] },
+  na: { files: ['na'], drums: [DAYAN] },
+  ta: { files: ['ta'], drums: [DAYAN] },
+  tin: { files: ['tin'], drums: [DAYAN] },
+  tun: { files: ['tun'], drums: [DAYAN] },
+  ti: { files: ['ti'], drums: [DAYAN] },
+  ge: { files: ['ge'], drums: [BAYAN] },
+  ke: { files: ['ke'], drums: [BAYAN] },
 };
 
-// Each bol is [stroke, position within the beat]. A rest has no entry and stays silent.
+// Each bol is [stroke, position within the beat, optional level]. A rest has no entry and stays silent.
 const BOLS = {
-  Dha: [['na', 0], ['ge', 0]],
-  Dhin: [['tin', 0], ['ge', 0]],
-  Dhi: [['ti', 0], ['ge', 0]],
-  Ta: [['na', 0]],
+  Dha: [['dha', 0]],
+  Dhin: [['dhin', 0]],
+  Dhi: [['ti', 0, 0.55], ['ge', 0]],
+  Ta: [['ta', 0]],
   Na: [['na', 0]],
   Tin: [['tin', 0]],
   Ti: [['ti', 0]],
   Tit: [['ti', 0]],
   Tu: [['tun', 0]],
   Ge: [['ge', 0]],
-  Ka: [['ka', 0]],
-  Kat: [['ka', 0]],
-  Kit: [['ka', 0], ['ti', 0.5]],
-  DhaGe: [['na', 0], ['ge', 0], ['ge', 0.5]],
-  TirKit: [['ti', 0], ['ti', 0.25], ['ka', 0.5], ['ti', 0.75]],
+  Ka: [['ke', 0]],
+  Kat: [['ke', 0]],
+  Kit: [['ke', 0], ['ti', 0.5]],
+  DhaGe: [['dha', 0], ['ge', 0.5]],
+  TirKit: [['ti', 0], ['ti', 0.25], ['ke', 0.5], ['ti', 0.75]],
   Gadi: [['ge', 0], ['ti', 0.5]],
   Gana: [['ge', 0], ['na', 0.5]],
 };
 
-let noiseBuffer = null;
+const buffers = new Map();
+const ringing = {};
 
-function getNoiseBuffer() {
-  if (!noiseBuffer) {
-    noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+async function fetchSample(file, attemptsLeft = FETCH_ATTEMPTS) {
+  try {
+    const res = await fetch(new URL(`${file}.wav`, SAMPLE_DIR));
+    if (!res.ok) throw new Error(`${file}.wav: HTTP ${res.status}`);
+    return await res.arrayBuffer();
+  } catch (err) {
+    if (attemptsLeft <= 1) throw err;
+    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+    return fetchSample(file, attemptsLeft - 1);
   }
-  return noiseBuffer;
 }
 
-function ring(time, stroke, [ratio, amp, decayScale], level) {
-  const dur = stroke.decay * decayScale;
-  const freq = stroke.base * ratio;
-  const osc = ctx.createOscillator();
-  osc.type = 'sine';
-  if (stroke.glideFrom) {
-    osc.frequency.setValueAtTime(freq * stroke.glideFrom, time);
-    osc.frequency.exponentialRampToValueAtTime(freq, time + stroke.glideTime);
-  } else {
-    osc.frequency.value = freq;
-  }
-
-  const env = ctx.createGain();
-  env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(amp * level, time + 0.002);
-  env.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-
-  osc.connect(env);
-  env.connect(masterGain);
-  osc.start(time);
-  osc.stop(time + dur + 0.01);
+// Decoded offline so samples are ready before the first tap creates the AudioContext.
+export async function loadSamples() {
+  const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const decoder = new Offline(1, 1, SAMPLE_RATE);
+  const files = Object.values(STROKES).flatMap(stroke => stroke.files);
+  await Promise.all(files.map(async file => {
+    const data = await fetchSample(file);
+    // Callback form: older Safari has no promise-returning decodeAudioData.
+    const buffer = await new Promise((ok, fail) => decoder.decodeAudioData(data, ok, fail));
+    buffers.set(file, buffer);
+  }));
 }
 
-function slap(time, [freq, q, dur, amp], level) {
+function nextBuffer(stroke) {
+  stroke.take = ((stroke.take ?? -1) + 1) % stroke.files.length;
+  return buffers.get(stroke.files[stroke.take]);
+}
+
+function damp(voice, time) {
+  voice.env.gain.setValueAtTime(voice.level, time);
+  voice.env.gain.linearRampToValueAtTime(0, time + DAMP_TIME);
+  voice.src.stop(time + DAMP_TIME);
+}
+
+function startStroke(stroke, time, level) {
   const src = ctx.createBufferSource();
-  src.buffer = getNoiseBuffer();
-
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass';
-  bp.frequency.value = freq;
-  bp.Q.value = q;
-
+  src.buffer = nextBuffer(stroke);
   const env = ctx.createGain();
-  env.gain.setValueAtTime(amp * level, time);
-  env.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-
-  src.connect(bp);
-  bp.connect(env);
+  env.gain.setValueAtTime(level, time);
+  src.connect(env);
   env.connect(masterGain);
-  src.start(time, Math.random() * 0.8);
-  src.stop(time + dur + 0.01);
+  src.start(time);
+  return { src, env, level };
 }
 
+// A new stroke silences the last one on the same drum, as the player's hand does.
 function playStroke(name, time, level) {
   const stroke = STROKES[name];
-  const scaled = level * HEADROOM;
-  for (const partial of stroke.partials) ring(time, stroke, partial, scaled);
-  slap(time, stroke.slap, scaled);
+  const voice = startStroke(stroke, time, level);
+  for (const drum of stroke.drums) {
+    if (ringing[drum]) damp(ringing[drum], time);
+    ringing[drum] = voice;
+  }
 }
 
 function startTime(time) {
@@ -153,17 +133,17 @@ function startTime(time) {
 }
 
 export function playBol(bol, time, beatDuration, isSam) {
-  if (!ctx || !masterGain) return;
+  if (!ctx || !masterGain || buffers.size === 0) return;
   const strokes = BOLS[bol];
   if (!strokes) return;
   const t = startTime(time);
-  const level = isSam ? 1 : ACCENT;
-  for (const [name, position] of strokes) {
-    playStroke(name, t + position * beatDuration, level);
+  const level = isSam ? SAM_LEVEL : LEVEL;
+  for (const [name, position, scale = 1] of strokes) {
+    playStroke(name, t + position * beatDuration, level * scale);
   }
 }
 
 export function playSubdivision(time) {
-  if (!ctx || !masterGain) return;
-  playStroke('ti', startTime(time), SUBDIVISION_LEVEL);
+  if (!ctx || !masterGain || buffers.size === 0) return;
+  startStroke(STROKES.ti, startTime(time), SUBDIVISION_LEVEL);
 }

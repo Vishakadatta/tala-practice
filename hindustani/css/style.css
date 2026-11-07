@@ -309,6 +309,36 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
+/* About */
+.about {
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+}
+.about-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+.about p {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  line-height: 1.5;
+  margin-bottom: 0.4rem;
+}
+.about-link {
+  margin-top: 0.5rem;
+}
+.about-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+.about-link a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 768px) {
   .sidebar-toggle { display: block; }
   .sidebar {

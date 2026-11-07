@@ -35,13 +35,14 @@ body {
   position: fixed;
   top: 0.5rem;
   left: 0.5rem;
-  z-index: 10;
+  z-index: 30;
   background: none;
   border: none;
   font-size: 1.25rem;
   color: var(--text);
   cursor: pointer;
   padding: 0.25rem 0.5rem;
+  display: none;
 }
 .sidebar-title {
   font-family: var(--font-serif);
@@ -303,6 +304,7 @@ input[type="range"] {
 }
 
 @media (max-width: 768px) {
+  .sidebar-toggle { display: block; }
   .sidebar {
     position: fixed;
     top: 0; left: 0; bottom: 0;
@@ -310,7 +312,11 @@ input[type="range"] {
     background: var(--bg);
     margin-left: -220px;
   }
-  .sidebar.open { margin-left: 0; }
+  .sidebar.open {
+    margin-left: 0;
+    box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+  }
+  .sidebar-title { padding-left: 2.75rem; }
   #main { padding: 0.75rem; }
   .canvas-wrap { height: 260px; }
   .tala-name { font-size: 1.2rem; }

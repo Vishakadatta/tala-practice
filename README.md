@@ -27,7 +27,7 @@ Select a tala from the sidebar and press Start. Use the controls to adjust tempo
 
 ## Tech
 
-- [Three.js](https://threejs.org/) r162 for 3D rendering (loaded via import map from jsDelivr, with integrity hashes)
+- [Three.js](https://threejs.org/) for 3D rendering (loaded via import map from jsDelivr, with integrity hashes)
 - [WebXR Input Profiles](https://github.com/nicolewen/webxr-input-profiles) hand models (MIT)
 - Web Audio API for synthesized percussion sounds
 - Hindustani site: tabla recordings from [Naad](https://github.com/oormicreations/naad) by Oormi Creations (MIT, see `hindustani/assets/tabla/LICENSE`)
@@ -40,7 +40,7 @@ npm ci --ignore-scripts
 npm test
 ```
 
-GitHub runs these and CodeQL on every push and every Monday. Dependabot opens update pull requests monthly. After upgrading Three.js, run `npm run check -- --fix` to refresh the integrity hashes and Content-Security-Policy.
+A GitHub Actions workflow runs lint, integrity checks, security audit and CodeQL on every push. Twice a month, a maintenance workflow updates all dependencies to their latest versions, regenerates the integrity hashes and Content-Security-Policy, runs the full test suite and a headless smoke test (hand rendering, audio output, CSP compliance), and deploys automatically if everything passes. If anything fails, a GitHub issue is opened.
 
 To report a security problem, see [SECURITY.md](SECURITY.md).
 

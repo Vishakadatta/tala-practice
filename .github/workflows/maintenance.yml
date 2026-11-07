@@ -1,0 +1,106 @@
+name: Maintenance
+
+on:
+  schedule:
+    # 1st and 15th of each month at 04:30 UTC
+    - cron: '30 4 1,15 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+  security-events: read
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install current dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Save baseline for smoke comparison
+        run: |
+          mkdir /tmp/baseline
+          git archive HEAD | tar -x -C /tmp/baseline
+
+      - name: Update dependencies
+        run: |
+          npm install three@latest --save-exact
+          npm install --save-dev eslint@latest playwright-core@latest
+          npm audit fix || true
+
+      - name: Regenerate integrity hashes and CSP
+        run: npm run check -- --fix
+
+      - name: Lint and check
+        run: npm test
+
+      - name: Security audit
+        run: npm audit
+
+      - name: Smoke test
+        run: node scripts/smoke.mjs /tmp/baseline
+
+      - name: Commit and deploy
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing to update."
+            exit 0
+          fi
+          git config user.name "Vishakadatta JH"
+          git config user.email "28229960+Vishakadatta@users.noreply.github.com"
+          git add -A
+          git commit -m "Update dependencies $(date +%Y-%m-%d)"
+          git push
+          curl -sS -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/pages/builds"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report failure
+        if: failure()
+        run: |
+          gh label create maintenance --color D93F0B --force 2>/dev/null || true
+          BODY="The [maintenance run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) failed. Check the logs."
+          EXISTING=$(gh issue list --label maintenance --state open --limit 1 --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create \
+              --title "Maintenance failure $(date +%Y-%m-%d)" \
+              --body "$BODY" \
+              --label maintenance \
+              --assignee Vishakadatta
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check code-scanning alerts
+        if: always()
+        run: |
+          ALERTS=$(gh api "repos/$GITHUB_REPOSITORY/code-scanning/alerts?state=open&per_page=1" --jq 'length' 2>/dev/null || echo "0")
+          if [ "$ALERTS" != "0" ]; then
+            gh label create security --color B60205 --force 2>/dev/null || true
+            BODY="There are open [code-scanning alerts]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/security/code-scanning). Review them."
+            EXISTING=$(gh issue list --label security --state open --limit 1 --json number -q '.[0].number')
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" --body "$BODY"
+            else
+              gh issue create \
+                --title "Open code-scanning alerts" \
+                --body "$BODY" \
+                --label security \
+                --assignee Vishakadatta
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

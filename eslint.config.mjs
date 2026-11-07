@@ -47,7 +47,12 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: { console: 'readonly', process: 'readonly' },
+      // The smoke test also defines functions that run inside the page.
+      globals: {
+        console: 'readonly', process: 'readonly', window: 'readonly', document: 'readonly',
+        performance: 'readonly', setTimeout: 'readonly', Image: 'readonly',
+        AudioNode: 'readonly', AudioDestinationNode: 'readonly',
+      },
     },
     rules,
   },

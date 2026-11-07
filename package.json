@@ -1,23 +1,28 @@
 {
   "name": "tala-practice",
   "version": "1.0.0",
-  "description": "A browser-based Carnatic tala practice tool with animated hand models, synthesized audio, and support for Adi, Rupaka, Misra Chapu, and Khanda Chapu talas.",
-  "main": "index.js",
+  "private": true,
+  "description": "Personal Carnatic and Hindustani tala practice sites with animated hand models.",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint .",
+    "check": "node scripts/site-check.mjs",
+    "test": "npm run lint && npm run check"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vishakadatta/tala-practice.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/vishakadatta/tala-practice/issues"
+  "author": "Vishakadatta JH",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://vishakadatta.github.io/tala-practice/",
+  "dependencies": {
+    "three": "0.162.0"
   },
-  "homepage": "https://github.com/vishakadatta/tala-practice#readme",
   "devDependencies": {
     "eslint": "^10.13.0"
+  },
+  "overrides": {
+    "minimatch": "11.0.5"
   }
 }

@@ -3,6 +3,7 @@ https://github.com/oormicreations/naad
 Commit 0e881b669f370b916efe429e4db79fd66bfb18b0, folder Bol/
 
 Changes: selected takes converted to mono, trimmed, faded out and level-matched.
+ge.wav also has overtones added so that small speakers can play it.
 
 dha-1.wav   Dha/Dha01.wav
 dha-2.wav   Dha/Dha02.wav

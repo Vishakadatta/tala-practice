@@ -27,12 +27,23 @@ Select a tala from the sidebar and press Start. Use the controls to adjust tempo
 
 ## Tech
 
-- [Three.js](https://threejs.org/) r162 for 3D rendering (loaded via import map from jsDelivr)
+- [Three.js](https://threejs.org/) r162 for 3D rendering (loaded via import map from jsDelivr, with integrity hashes)
 - [WebXR Input Profiles](https://github.com/nicolewen/webxr-input-profiles) hand models (MIT)
 - Web Audio API for synthesized percussion sounds
 - Hindustani site: tabla recordings from [Naad](https://github.com/oormicreations/naad) by Oormi Creations (MIT, see `hindustani/assets/tabla/LICENSE`)
-- No frameworks, no bundler, no dependencies to install
+- No frameworks and no bundler. The sites run without installing anything; `npm` is only for the checks below.
+
+## Checks
+
+```
+npm ci --ignore-scripts
+npm test
+```
+
+GitHub runs these and CodeQL on every push and every Monday. Dependabot opens update pull requests monthly. After upgrading Three.js, run `npm run check -- --fix` to refresh the integrity hashes and Content-Security-Policy.
+
+To report a security problem, see [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT
+Personal, non-commercial project; all rights reserved. The code is public only because free GitHub Pages hosting requires it. See [LICENSE](LICENSE). Third-party components keep their own licenses.

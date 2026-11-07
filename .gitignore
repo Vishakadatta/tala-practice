@@ -1,5 +1,6 @@
 node_modules/
-package-lock.json
+.claude/
+hands-fix.patch
 .DS_Store
 Thumbs.db
 *.log

@@ -1,7 +1,13 @@
-import { TALAS, expandTala } from './talas.js';
-import * as hands from './hands.js';
-import * as engine from './engine.js';
-import { initAudio, getContext, setVolume, loadSamples } from './audio.js';
+// Keep ?v= identical everywhere and raise it with each release: a browser may otherwise
+// mix cached old modules with new ones, and a mismatch here would duplicate a module.
+import { TALAS, expandTala } from './talas.js?v=2';
+import * as hands from './hands.js?v=2';
+import * as engine from './engine.js?v=2';
+import { initAudio, getContext, setVolume, loadSamples } from './audio.js?v=2';
+
+const LOAD_ERROR = 'Tabla sounds could not load. Check your connection and press Start again.';
+const BLOCKED_ERROR = 'The browser is blocking sound. Press Stop, then Start again.';
+const AUDIO_CHECK_MS = 1000;
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -15,7 +21,7 @@ async function boot() {
 
   const samplesLoaded = loadSamples().catch(err => {
     console.error('Tabla samples failed to load:', err);
-    $('#sound-error').hidden = false;
+    showSoundError(LOAD_ERROR);
   });
   await Promise.all([hands.init(canvas), samplesLoaded]);
 
@@ -163,13 +169,37 @@ function scheduleUI(beatIndex, beat, time) {
   }, delay);
 }
 
-function startPlayback() {
+function showSoundError(message) {
+  const el = $('#sound-error');
+  el.textContent = message;
+  el.hidden = false;
+}
+
+async function startPlayback() {
+  // initAudio must run before any await so it stays inside the tap, which iOS requires.
   const ctx = initAudio();
+  const button = $('#btn-start');
+  button.disabled = true;
+  try {
+    await loadSamples();
+  } catch (err) {
+    console.error('Tabla samples failed to load:', err);
+    showSoundError(LOAD_ERROR);
+    return;
+  } finally {
+    button.disabled = false;
+  }
+  $('#sound-error').hidden = true;
+
   hands.setClock(() => ctx.currentTime);
   engine.onBeatCallback(scheduleUI);
   engine.start();
   playing = true;
-  $('#btn-start').textContent = 'Stop';
+  button.textContent = 'Stop';
+
+  setTimeout(() => {
+    if (playing && ctx.state !== 'running') showSoundError(BLOCKED_ERROR);
+  }, AUDIO_CHECK_MS);
 }
 
 function stopPlayback() {

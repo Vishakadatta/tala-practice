@@ -1,5 +1,5 @@
-import { expandTala } from './talas.js';
-import { playBol, playSubdivision, getContext } from './audio.js';
+import { expandTala } from './talas.js?v=2';
+import { playBol, playSubdivision, getContext } from './audio.js?v=2';
 
 let running = false;
 let currentTala = null;
@@ -46,7 +46,7 @@ export function onSubBeatCallback(fn) { onSubBeat = fn; }
 export function start() {
   const ctx = getContext();
   if (!ctx || !currentTala) return;
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state !== 'running') ctx.resume();
 
   running = true;
   beatIndex = 0;

@@ -5,7 +5,8 @@ let pendingVolume = 0.7;
 
 export function initAudio() {
   if (ctx) {
-    if (ctx.state === 'suspended') ctx.resume();
+    // Safari can also report 'interrupted' after the app or tab has been in the background.
+    if (ctx.state !== 'running') ctx.resume();
     return ctx;
   }
   ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -83,8 +84,21 @@ async function fetchSample(file, attemptsLeft = FETCH_ATTEMPTS) {
   }
 }
 
+let samplesLoading = null;
+
+// A failed load is forgotten so that pressing Start can try again.
+export function loadSamples() {
+  if (!samplesLoading) {
+    samplesLoading = decodeSamples().catch(err => {
+      samplesLoading = null;
+      throw err;
+    });
+  }
+  return samplesLoading;
+}
+
 // Decoded offline so samples are ready before the first tap creates the AudioContext.
-export async function loadSamples() {
+async function decodeSamples() {
   const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const decoder = new Offline(1, 1, SAMPLE_RATE);
   const files = Object.values(STROKES).flatMap(stroke => stroke.files);
@@ -133,7 +147,7 @@ function startTime(time) {
 }
 
 export function playBol(bol, time, beatDuration, isSam) {
-  if (!ctx || !masterGain || buffers.size === 0) return;
+  if (!ctx || !masterGain) return;
   const strokes = BOLS[bol];
   if (!strokes) return;
   const t = startTime(time);
@@ -144,6 +158,6 @@ export function playBol(bol, time, beatDuration, isSam) {
 }
 
 export function playSubdivision(time) {
-  if (!ctx || !masterGain || buffers.size === 0) return;
+  if (!ctx || !masterGain) return;
   startStroke(STROKES.ti, startTime(time), SUBDIVISION_LEVEL);
 }
